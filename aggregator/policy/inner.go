@@ -38,9 +38,15 @@ type innerProof struct {
 }
 
 type Loaded struct {
-	Proof innerProof
-	Pins  []fr.Element
-	claim [32]byte
+	Proof        innerProof
+	publicInputs []fr.Element
+	preDigest    [32]byte
+}
+
+func frToBig(element fr.Element) *big.Int {
+	var value big.Int
+	element.BigInt(&value)
+	return &value
 }
 
 type backendLoader func(dir string) (*Loaded, error)
@@ -136,7 +142,10 @@ func loadSP1(dir string) (*Loaded, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Loaded{Proof: innerProof{vk, &p, publicValues, w}}, nil
+	return &Loaded{
+		Proof:        innerProof{vk, &p, publicValues, w},
+		publicInputs: inputs,
+	}, nil
 }
 
 func loadRISC0(dir string) (*Loaded, error) {
@@ -160,6 +169,10 @@ func loadRISC0(dir string) (*Loaded, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", fileBn254ControlID, err)
 	}
+	preDigest, err := readDigest32(filepath.Join(dir, filePreDigest))
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", filePreDigest, err)
+	}
 	vkBytes := risc0Groth16VK
 	vk, err := parseGroth16VK(vkBytes)
 	if err != nil {
@@ -175,9 +188,9 @@ func loadRISC0(dir string) (*Loaded, error) {
 		return nil, err
 	}
 	return &Loaded{
-		Proof: innerProof{vk, proof, publicValues, w},
-		Pins:  pins,
-		claim: claim,
+		Proof:        innerProof{vk, proof, publicValues, w},
+		publicInputs: pins,
+		preDigest:    preDigest,
 	}, nil
 }
 

@@ -26,12 +26,13 @@ const (
 	fileClaimDigest    = "claim_digest.bin"
 	fileControlRoot    = "control_root.bin"
 	fileBn254ControlID = "bn254_control_id.bin"
+	filePreDigest      = "pre_digest.bin"
 
 	outerCCSFile   = "outer_ccs.bin"
 	outerPKFile    = "outer_pk.bin"
 	outerVKFile    = "outer_vk.bin"
 	outerProofFile = "outer_proof.bin"
-	fileFrostOut     = "frost_outputs.bin"
+	fileFrostOut   = "frost_outputs.bin"
 )
 
 type BackendID string
@@ -125,7 +126,7 @@ func saveOuterArtifacts(dir string, ccs *cs.R1CS, pk groth16.ProvingKey, vk grot
 		return err
 	}
 	for _, item := range []struct {
-		name string
+		name  string
 		write func(io.Writer) (int64, error)
 	}{
 		{outerCCSFile, ccs.WriteTo},
@@ -139,7 +140,7 @@ func saveOuterArtifacts(dir string, ccs *cs.R1CS, pk groth16.ProvingKey, vk grot
 	return nil
 }
 
-func saveOuter(outDir string, proof groth16.Proof, vk groth16.VerifyingKey, frost []byte, claim [32]byte) error {
+func saveOuter(outDir string, proof groth16.Proof, vk groth16.VerifyingKey, frost []byte) error {
 	if err := os.MkdirAll(outDir, 0o755); err != nil {
 		return err
 	}
@@ -149,10 +150,7 @@ func saveOuter(outDir string, proof groth16.Proof, vk groth16.VerifyingKey, fros
 	if err := writeFile(filepath.Join(outDir, outerVKFile), vk.WriteTo); err != nil {
 		return err
 	}
-	if err := os.WriteFile(filepath.Join(outDir, fileFrostOut), frost, 0o644); err != nil {
-		return err
-	}
-	return os.WriteFile(filepath.Join(outDir, fileClaimDigest), claim[:], 0o644)
+	return os.WriteFile(filepath.Join(outDir, fileFrostOut), frost, 0o644)
 }
 
 func writeFile(path string, fn func(io.Writer) (int64, error)) (err error) {

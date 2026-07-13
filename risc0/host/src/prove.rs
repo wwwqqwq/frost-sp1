@@ -102,11 +102,12 @@ pub fn run(
             .inner
             .groth16()
             .map_err(|_| anyhow!("receipt is not Groth16"))?;
-        let claim = groth16
+        let claim_value = groth16
             .claim
             .as_value()
-            .map_err(|_| anyhow!("groth16 claim is pruned"))?
-            .digest();
+            .map_err(|_| anyhow!("groth16 claim is pruned"))?;
+        let claim = claim_value.digest();
+        let pre_digest = claim_value.pre.digest();
         let params = Groth16ReceiptVerifierParameters::default();
         storage::write_artifacts(
             &dir,
@@ -116,6 +117,7 @@ pub fn run(
                 ("claim_digest.bin", claim.as_bytes()),
                 ("control_root.bin", params.control_root.as_bytes()),
                 ("bn254_control_id.bin", params.bn254_control_id.as_bytes()),
+                ("pre_digest.bin", pre_digest.as_bytes()),
             ],
         )?;
     }
