@@ -6,22 +6,24 @@ use alloc::vec::Vec;
 
 use frost_core::{FrostPayload, ProofOutputs, SIGNATURE_LEN, VERIFYING_KEY_LEN};
 use frost_ed25519 as frost;
+use jolt::PrivateInput;
 use tiny_keccak::{Hasher, Keccak};
 
 #[jolt::provable(
     stack_size = 131072,
     heap_size = 33554432,
-    max_input_size = 131072,
+    max_input_size = 0,
+    max_untrusted_advice_size = 131072,
     max_output_size = 4096,
     max_trace_length = 16777216
 )]
-pub fn frost_aggregate(payload: FrostPayload) -> Vec<u8> {
+pub fn frost_aggregate(payload: PrivateInput<FrostPayload>) -> Vec<u8> {
     let FrostPayload {
         message,
         pubkey_package,
         commitments,
         signature_shares,
-    } = payload;
+    } = (*payload).clone();
 
     let signing_package = frost::SigningPackage::new(commitments, &message);
     let signature = frost::aggregate(&signing_package, &signature_shares, &pubkey_package)

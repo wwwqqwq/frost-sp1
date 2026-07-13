@@ -8,6 +8,7 @@ use guest::{
     compile_frost_aggregate, preprocess_prover_frost_aggregate, preprocess_shared_frost_aggregate,
     preprocess_verifier_frost_aggregate,
 };
+use jolt::PrivateInput;
 use tiny_keccak::{Hasher, Keccak};
 
 const GUEST_TARGET_DIR: &str = "/tmp/jolt-frost-guest-targets";
@@ -46,7 +47,7 @@ pub fn run(message: String, _proof_type: ProofType, execute_only: bool) -> Resul
     println!("payload: {} signers {signer_ids:?}", signer_ids.len(),);
 
     if execute_only {
-        let summary = analyze_frost_aggregate(payload);
+        let summary = analyze_frost_aggregate(PrivateInput::new(payload));
         println!("cycles: {}", summary.trace_len());
         return Ok(());
     }
@@ -56,13 +57,15 @@ pub fn run(message: String, _proof_type: ProofType, execute_only: bool) -> Resul
         preprocess_shared_frost_aggregate(&mut program).context("Jolt preprocess_shared failed")?;
     let prover_preprocessing = preprocess_prover_frost_aggregate(shared.clone());
     let verifier_setup = prover_preprocessing.generators.to_verifier_setup();
-    let verifier_preprocessing = preprocess_verifier_frost_aggregate(shared, verifier_setup, None);
+    let blindfold_setup = prover_preprocessing.blindfold_setup();
+    let verifier_preprocessing =
+        preprocess_verifier_frost_aggregate(shared, verifier_setup, Some(blindfold_setup));
 
     let prove = build_prover_frost_aggregate(program, prover_preprocessing);
     let verify = build_verifier_frost_aggregate(verifier_preprocessing);
 
-    let (guest_out, proof, program_io) = prove(payload.clone());
-    let is_valid = verify(payload, guest_out.clone(), program_io.panic, proof);
+    let (guest_out, proof, program_io) = prove(PrivateInput::new(payload));
+    let is_valid = verify(guest_out.clone(), program_io.panic, proof);
     if !is_valid {
         bail!("Jolt verify() rejected the freshly generated proof");
     }

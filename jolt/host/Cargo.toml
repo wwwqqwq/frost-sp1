@@ -12,7 +12,7 @@ name = "host"
 path = "src/main.rs"
 
 [dependencies]
-jolt = { workspace = true, features = ["host"] }
+jolt = { workspace = true, features = ["host", "zk"] }
 clap     = { workspace = true }
 anyhow   = { workspace = true }
 hex      = { workspace = true }
